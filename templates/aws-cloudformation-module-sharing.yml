@@ -1,0 +1,63 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template creates a CloudFormation StackSet to deploy a CloudFormation module to the specified accounts and regions. You will be billed for the AWS resources used if you create a stack from this template.
+
+Parameters:
+  ModuleBucketName:
+    Type: String
+    Description: S3 Bucket Name for CloudFormation Module Deployment Packages
+  ModuleName:
+    Type: String
+    Description: Name of the CloudFormation Module to be created
+    Default: "MyOrganization::MyNamespace::MyApp::MODULE"
+  ModuleKey:
+    Type: String
+    Description: Object Key for CloudFormation Module Package in S3
+  TargetAccounts:
+    Type: CommaDelimitedList
+    Description: Input Account IDs to deploy StackSet to
+  TargetRegions:
+    Type: CommaDelimitedList
+    Description: Target Regions for deployment of StackSet (e.g eu-west-1, us-east-2)
+
+Resources:
+  AppModuleStackSet:
+    Type: "AWS::CloudFormation::StackSet"
+    Properties:
+      TemplateBody: |
+        AWSTemplateFormatVersion: 2010-09-09
+
+        Parameters:
+          ModuleBucketName:
+            Type: String
+            Description: S3 Bucket Name for CloudFormation Module Deployment Packages
+          ModuleName:
+            Type: String
+            Description: Name of the CloudFormation Module to be created
+            Default: "MyOrganization::MyNamespace::MyApp::MODULE"
+          ModuleKey:
+            Type: String
+            Description: Object Key for CloudFormation Module Package in S3
+
+        Resources:
+          AppModuleVersion:
+            Type: "AWS::CloudFormation::ModuleVersion"
+            Properties:
+              ModuleName: !Ref ModuleName
+              ModulePackage: 
+                !Join ["/", ["s3:/", !Ref ModuleBucketName, !Ref ModuleKey]]
+      Parameters:
+        - ParameterKey: ModuleBucketName
+          ParameterValue: !Ref ModuleBucketName
+        - ParameterKey: ModuleKey
+          ParameterValue: !Ref ModuleKey
+        - ParameterKey: ModuleName
+          ParameterValue: !Ref ModuleName
+      Capabilities: [CAPABILITY_IAM, CAPABILITY_NAMED_IAM]
+      PermissionModel: SELF_MANAGED
+      StackSetName: !Join ["", [!Ref AWS::StackName, StackSet]]
+      StackInstancesGroup:
+        - DeploymentTargets:
+            Accounts: !Ref TargetAccounts
+          Regions: !Ref TargetRegions

@@ -1,0 +1,37 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template creates a DynamoDB table and the DynamoDB Data Seeder resource defined in the modules section of this repository. You will be billed for the AWS resources used if you create a stack from this template.
+
+Parameters:
+  AppName:
+    Description: App Name for Resource Tagging
+    Type: String
+    Default: WidgetApp
+
+Resources:
+  IndustryDataAppTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "IndustrySegment"
+          AttributeType: "S"
+        - AttributeName: "IndustrySubType"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "IndustrySegment"
+          KeyType: "HASH"
+        - AttributeName: "IndustrySubType"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Join ["", [!Ref AppName, IndustryDataAppTable]]
+      Tags:
+        - Key: AppName
+          Value: !Ref AppName
+
+  DataSeeder:
+    Type: MyOrganization::MyNamespace::DataSeeder::MODULE
+    Properties:
+      DynamoDBTable: !Ref IndustryDataAppTable

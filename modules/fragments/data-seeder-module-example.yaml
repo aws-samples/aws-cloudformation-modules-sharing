@@ -1,0 +1,210 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template defines the DynamoDB Data Seeder to be shared as a CloudFormation module. You will be billed for the AWS resources used if you create a stack from this template.
+
+Parameters:
+  DynamoDBTable:
+    Description: Target DynamoDB Table
+    Type: String
+
+Resources:
+  DataSeederLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          var AWS = require('aws-sdk');
+          var dynamodb = new AWS.DynamoDB();
+
+          exports.handler = (event, context, callback) => {
+
+              console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+              
+              if (event.RequestType == "Delete") {
+                  sendResponse(event, context, "SUCCESS");
+                  return;
+              }
+
+              var responseStatus = "FAILED";
+              var responseData = {};
+              var tableName = process.env.TABLE_NAME;
+
+              var params = {
+                RequestItems: {
+                [tableName]: [
+                    {
+                    PutRequest: {
+                    Item: {
+                      "IndustryId": {
+                        S: "a8adda08-9746-4f35-aad6-2a68ed51ac77"  
+                      },
+                      "IndustrySegment": {
+                        S: "Agriculture"
+                      }, 
+                      "IndustrySubType": {
+                        S: "Farming"
+                      }, 
+                    }
+                    }
+                  }, 
+                    {
+                    PutRequest: {
+                    Item: {
+                      "IndustryId": {
+                        S: "a446065a-a56f-4d4a-956b-242c82470b66"  
+                      },
+                      "IndustrySegment": {
+                        S: "Agriculture"
+                      }, 
+                      "IndustrySubType": {
+                        S: "Forestry"
+                      }, 
+                    }
+                    }
+                  }, 
+                    {
+                    PutRequest: {
+                    Item: {
+                      "IndustryId": {
+                        S: "71759529-4471-427d-88ce-0f333460b832"  
+                      },
+                      "IndustrySegment": {
+                        S: "Financial Services"
+                      }, 
+                      "IndustrySubType": {
+                        S: "Banking"
+                      }, 
+                    }
+                    }
+                  },
+                  {
+                    PutRequest: {
+                    Item: {
+                      "IndustryId": {
+                        S: "c154fb63-8f56-4ded-9e1f-88225401d320"  
+                      },
+                      "IndustrySegment": {
+                        S: "Financial Services"
+                      }, 
+                      "IndustrySubType": {
+                        S: "Insurance"
+                      }, 
+                    }
+                    }
+                  }
+                  ]
+                }
+              };
+              
+              dynamodb.batchWriteItem(params, function(err, data) {
+                  if (err) {
+                      responseData = {Error: "Loading data failed."};
+                      console.log(responseData.Error + ":\n", err);
+                  }
+                  else {
+                      responseStatus = "SUCCESS";
+                  }
+                  sendResponse(event, context, responseStatus, responseData);
+              });
+          }
+
+          function sendResponse(event, context, responseStatus, responseData) {
+
+              var responseBody = JSON.stringify({
+                  Status: responseStatus,
+                  Reason: "See the details in CloudWatch Log Stream: " + context.logStreamName,
+                  PhysicalResourceId: context.logStreamName,
+                  StackId: event.StackId,
+                  RequestId: event.RequestId,
+                  LogicalResourceId: event.LogicalResourceId,
+                  Data: responseData
+              });
+
+              console.log("RESPONSE BODY:\n", responseBody);
+
+              var https = require("https");
+              var url = require("url");
+
+              var parsedUrl = url.parse(event.ResponseURL);
+              var options = {
+                  hostname: parsedUrl.hostname,
+                  port: 443,
+                  path: parsedUrl.path,
+                  method: "PUT",
+                  headers: {
+                      "content-type": "",
+                      "content-length": responseBody.length
+                  }
+              };
+
+              console.log("SENDING RESPONSE...\n");
+
+              var request = https.request(options, function(response) {
+                  console.log("STATUS: " + response.statusCode);
+                  console.log("HEADERS: " + JSON.stringify(response.headers));
+                  context.done();
+              });
+
+              request.on("error", function(error) {
+                  console.log("sendResponse Error:" + error);
+                  context.done();
+              });
+            
+              request.write(responseBody);
+              request.end();
+          }
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Timeout: 30
+      Role: !GetAtt "LambdaExecutionRole.Arn"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref DynamoDBTable
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchWriteItem
+                Resource: !Join
+                  - ""
+                  - - "arn:aws:dynamodb:"
+                    - !Ref "AWS::Region"
+                    - ":"
+                    - !Ref "AWS::AccountId"
+                    - ":table/"
+                    - !Ref "DynamoDBTable"
+  DataLoaderCustomResource:
+    Type: Custom::DataLoader
+    Properties:
+      ServiceToken: !Join
+        - ""
+        - - "arn:aws:lambda:"
+          - !Ref "AWS::Region"
+          - ":"
+          - !Ref "AWS::AccountId"
+          - ":function:"
+          - !Ref "DataSeederLambdaFunction"

@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template creates a CloudFormation Module in the CloudFormation Registry based on the deployment package provided as parameters to the template. You will be billed for the AWS resources used if you create a stack from this template.
+
+Parameters:
+  ModuleBucketName:
+    Type: String
+    Description: S3 Bucket Name for CloudFormation Module Deployment Packages
+  ModuleName:
+    Type: String
+    Description: Name of the CloudFormation Module to be created
+    Default: "MyOrganization::MyNamespace::MyApp::MODULE"
+  ModuleKey:
+    Type: String
+    Description: Object Key for CloudFormation Module Package in S3
+
+Resources:
+  AppModuleVersion:
+    Type: "AWS::CloudFormation::ModuleVersion"
+    Properties:
+      ModuleName: !Ref ModuleName
+      ModulePackage:
+        !Join ["/", ["s3:/", !Ref ModuleBucketName, !Ref ModuleKey]]
