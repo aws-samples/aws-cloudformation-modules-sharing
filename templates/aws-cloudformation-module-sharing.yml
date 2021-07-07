@@ -45,7 +45,7 @@ Resources:
             Type: "AWS::CloudFormation::ModuleVersion"
             Properties:
               ModuleName: !Ref ModuleName
-              ModulePackage: 
+              ModulePackage:
                 !Join ["/", ["s3:/", !Ref ModuleBucketName, !Ref ModuleKey]]
       Parameters:
         - ParameterKey: ModuleBucketName

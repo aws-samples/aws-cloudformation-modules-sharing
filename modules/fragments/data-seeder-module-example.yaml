@@ -37,44 +37,44 @@ Resources:
                     PutRequest: {
                     Item: {
                       "IndustryId": {
-                        S: "a8adda08-9746-4f35-aad6-2a68ed51ac77"  
+                        S: "a8adda08-9746-4f35-aad6-2a68ed51ac77"
                       },
                       "IndustrySegment": {
                         S: "Agriculture"
-                      }, 
+                      },
                       "IndustrySubType": {
                         S: "Farming"
-                      }, 
+                      },
                     }
                     }
-                  }, 
+                  },
                     {
                     PutRequest: {
                     Item: {
                       "IndustryId": {
-                        S: "a446065a-a56f-4d4a-956b-242c82470b66"  
+                        S: "a446065a-a56f-4d4a-956b-242c82470b66"
                       },
                       "IndustrySegment": {
                         S: "Agriculture"
-                      }, 
+                      },
                       "IndustrySubType": {
                         S: "Forestry"
-                      }, 
+                      },
                     }
                     }
-                  }, 
+                  },
                     {
                     PutRequest: {
                     Item: {
                       "IndustryId": {
-                        S: "71759529-4471-427d-88ce-0f333460b832"  
+                        S: "71759529-4471-427d-88ce-0f333460b832"
                       },
                       "IndustrySegment": {
                         S: "Financial Services"
-                      }, 
+                      },
                       "IndustrySubType": {
                         S: "Banking"
-                      }, 
+                      },
                     }
                     }
                   },
@@ -82,14 +82,14 @@ Resources:
                     PutRequest: {
                     Item: {
                       "IndustryId": {
-                        S: "c154fb63-8f56-4ded-9e1f-88225401d320"  
+                        S: "c154fb63-8f56-4ded-9e1f-88225401d320"
                       },
                       "IndustrySegment": {
                         S: "Financial Services"
-                      }, 
+                      },
                       "IndustrySubType": {
                         S: "Insurance"
-                      }, 
+                      },
                     }
                     }
                   }
@@ -185,13 +185,15 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: arn:aws:logs:*:*:*
+                Resource: !Sub arn:${AWS::Partition}:logs:*:*:*
               - Effect: Allow
                 Action:
                   - dynamodb:BatchWriteItem
                 Resource: !Join
                   - ""
-                  - - "arn:aws:dynamodb:"
+                  - - "arn:"
+                    - !Ref AWS::Partition
+                    - ":dynamodb:"
                     - !Ref "AWS::Region"
                     - ":"
                     - !Ref "AWS::AccountId"
@@ -202,7 +204,9 @@ Resources:
     Properties:
       ServiceToken: !Join
         - ""
-        - - "arn:aws:lambda:"
+        - - "arn:"
+          - !Ref AWS::Partition
+          - ":lambda:"
           - !Ref "AWS::Region"
           - ":"
           - !Ref "AWS::AccountId"
